@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
 
 import { ErrorCode } from "../utils/types";
 import { User } from "../models/user.model";
@@ -10,6 +11,7 @@ import {
   generateAccessTokenAndRefreshToken,
   isPasswordCorrect,
 } from "../utils";
+import { ObjectId } from "mongoose";
 
 export const registerUser = asyncHandler(
   async (req: Request, res: Response) => {
@@ -82,7 +84,55 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
       )
     );
 });
-
+export const refreshAccessToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    const incomingRefreshToken = req.cookies.refreshToken;
+    if (!incomingRefreshToken) {
+      throw new ApiError(
+        401,
+        "Unauthorized request!",
+        ErrorCode.UNAUTHORIZED_ACCESS
+      );
+    }
+    const userInfo = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET!
+    ) as { userId: ObjectId };
+    const user = await User.findById(userInfo.userId);
+    if (!user) {
+      throw new ApiError(401, "User not found!", ErrorCode.USER_NOT_FOUND);
+    }
+    if (user.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(
+        401,
+        "Unauthorized request!",
+        ErrorCode.UNAUTHORIZED_ACCESS
+      );
+    }
+    const { accessToken, refreshToken } = generateAccessTokenAndRefreshToken(
+      user._id
+    );
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+    res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            userId: user._id,
+            accessToken,
+            refreshToken,
+          },
+          "Token refreshed!"
+        )
+      );
+  }
+);
 export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.headers["userId"];
   if (!userId) {
