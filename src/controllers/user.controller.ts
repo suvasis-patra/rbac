@@ -103,5 +103,9 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
     httpOnly: true,
     secure: true,
   };
-  res.send(204).json(new ApiResponse(204, null, "logged out!"));
+  res
+    .send(204)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(204, null, "logged out!"));
 });
