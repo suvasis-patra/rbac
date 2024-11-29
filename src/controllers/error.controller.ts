@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import { ApiError } from "../utils/ErrorResponse";
+
 import { ErrorCode } from "../utils/types";
+import { ApiError } from "../utils/ErrorResponse";
 
 export const notFoundError = (
   req: Request,
