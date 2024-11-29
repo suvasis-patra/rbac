@@ -82,3 +82,26 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
       )
     );
 });
+
+export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.headers["userId"];
+  if (!userId) {
+    throw new ApiError(400, "User not found", ErrorCode.USER_NOT_FOUND);
+  }
+  await User.findByIdAndUpdate(
+    userId,
+    {
+      $unset: {
+        refreshToken: 1,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  res.send(204).json(new ApiResponse(204, null, "logged out!"));
+});
